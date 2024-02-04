@@ -6,6 +6,11 @@ pub mod state;
 pub use constants::*;
 pub use state::*;
 
+use anchor_lang::solana_program::{
+    program::{invoke, invoke_signed},
+    system_instruction
+};
+
 declare_id!("5b6JMVrHatTdGFnHtKb2iuBquDmspYsPq1HLKifS8QHA");
 
 #[program]
@@ -27,7 +32,7 @@ pub mod lockmysol {
         lock_account.state = 1; // locked
         lock_account.amount = amountSol;
         lock_account.unlock_time = now.checked_add(durationInSeconds).unwrap();
-        lock_account.bump = *ctx.bumps.get('lock_account').unwrap();
+        lock_account.bump = ctx.bumps.lock_account;
 
         // transfer SOL
         invoke_signed(
@@ -65,7 +70,7 @@ pub mod lockmysol {
 }
 
 #[derive(Accounts)]
-pub struct LockSolForTime {
+pub struct LockSolForTime<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(
