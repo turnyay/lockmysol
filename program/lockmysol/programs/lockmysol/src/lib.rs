@@ -17,7 +17,7 @@ declare_id!("5b6JMVrHatTdGFnHtKb2iuBquDmspYsPq1HLKifS8QHA");
 pub mod lockmysol {
     use super::*;
 
-    pub fn lock_sol_for_time(ctx: Context<LockSolForTime>, amountSol: u64, durationInSeconds: u64) -> Result<()> {
+    pub fn lock_sol_for_time(ctx: Context<LockSolForTime>, amount_sol: u64, duration_in_seconds: u64) -> Result<()> {
 
         // Accounts:
         // 1 - signer
@@ -30,8 +30,8 @@ pub mod lockmysol {
         let lock_account = &mut ctx.accounts.lock_account;
         lock_account.owner = *ctx.accounts.user.key;
         lock_account.state = 1; // locked
-        lock_account.amount = amountSol;
-        lock_account.unlock_time = now.checked_add(durationInSeconds).unwrap();
+        lock_account.amount = amount_sol;
+        lock_account.unlock_time = now.checked_add(duration_in_seconds).unwrap();
         lock_account.bump = ctx.bumps.lock_account;
 
         // transfer SOL
@@ -39,7 +39,7 @@ pub mod lockmysol {
             &system_instruction::transfer(
                 &ctx.accounts.user.key(),
                 &ctx.accounts.escrow_account.key(),
-                amountSol
+                amount_sol
             ),
             &[
                 ctx.accounts.user.to_account_info().clone(),
@@ -49,7 +49,7 @@ pub mod lockmysol {
             &[]
         )?;
 
-        if durationInSeconds == 0 {
+        if duration_in_seconds == 0 {
             lock_account.state = 2; // unlocked
         }
 
