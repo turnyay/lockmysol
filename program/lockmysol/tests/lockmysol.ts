@@ -1,3 +1,5 @@
+const assert = require("assert");
+
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Lockmysol } from "../target/types/lockmysol";
@@ -25,7 +27,7 @@ describe("lockmysol", () => {
     // Get airdrop for txs
     provider.connection.requestAirdrop(provider.wallet.publicKey, 10000000000);
 
-    const success = await lockmysol.lockSolForTime(12345678, 30);
+    const success = await lockmysol.lockSolForTime(123456789, 30);
 
     if (success) {
       // log the lock account data
@@ -37,6 +39,12 @@ describe("lockmysol", () => {
       console.log("Lock until: ", lockAccount.unlockTime.toString());
       const diff = parseInt(lockAccount.unlockTime.toString()) - Math.floor(Date.now() / 1000);
       console.log("Unlocking in ", diff, " seconds!");
+
+      assert(lockAccount.owner.toBase58() == provider.wallet.publicKey.toBase58(), "Owner is not correct");
+      assert(lockAccount.state == 1, "State is not correct");
+      assert(lockAccount.amount.toString() == '123456789', "Amount is not correct");
+      assert((diff == 29 || diff == 30), "unlockTime is not correct");
+
     }
   });
 
