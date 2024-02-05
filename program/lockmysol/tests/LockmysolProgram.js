@@ -76,6 +76,30 @@ class LockmysolProgram {
         return success;
     }
 
+    async unlockSol() {
+
+        const escrowPda = this.getEscrowPda();
+        const lockAccountPda = this.getLockAccountPda();
+
+        const ix = await this.program.methods.unlockSol().accounts({
+            user: this.provider.wallet.publicKey,
+            escrowAccount: escrowPda,
+            lockAccount: lockAccountPda,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        }).instruction();
+        let tx = new anchor.web3.Transaction();
+        tx.add(ix);
+        let success = false;
+        try {
+            const txid = await this.provider.sendAndConfirm(tx);
+            console.log("   Unlock SOL successfully: %s", txid);
+            success = true;
+        } catch (err) {
+            console.log("   Unlock SOL error: %s", err);
+        }
+        return success;
+    }
+
 }
 
 export default LockmysolProgram;

@@ -7,6 +7,10 @@ import LockmysolProgram from "./LockmysolProgram.js";
 
 // import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 const programId = new anchor.web3.PublicKey("5b6JMVrHatTdGFnHtKb2iuBquDmspYsPq1HLKifS8QHA");
 
 describe("lockmysol", () => {
@@ -29,6 +33,7 @@ describe("lockmysol", () => {
 
     const success = await lockmysol.lockSolForTime(123456789, 30);
 
+    assert(success, "Tx should SUCCEED");
     if (success) {
       // log the lock account data
       const lockAccountPda = lockmysol.getLockAccountPda();
@@ -44,14 +49,57 @@ describe("lockmysol", () => {
       assert(lockAccount.state == 1, "State is not correct");
       assert(lockAccount.amount.toString() == '123456789', "Amount is not correct");
       assert((diff == 29 || diff == 30), "unlockTime is not correct");
+    }
+  });
 
+  it("Is ***NOT*** able to unlock solana", async () => {
+    
+    const success = await lockmysol.unlockSol();
+
+    assert(!success, "Tx should FAIL");
+    if (!success) {
+      // log the lock account data
+      const lockAccountPda = lockmysol.getLockAccountPda();
+      const lockAccount = await program.account.lockAccountSol.fetch(lockAccountPda);
+      console.log("Lock Owner: ", lockAccount.owner.toBase58());
+      console.log("Lock amount base units: ", lockAccount.amount.toString());
+      console.log("Lock state: ", lockAccount.state);
+      console.log("Lock until: ", lockAccount.unlockTime.toString());
+      const diff = parseInt(lockAccount.unlockTime.toString()) - Math.floor(Date.now() / 1000);
+      console.log("Unlocking in ", diff, " seconds!");
+
+      assert(lockAccount.owner.toBase58() == provider.wallet.publicKey.toBase58(), "Owner is not correct");
+      assert(lockAccount.state == 1, "State is not correct");
+      assert(lockAccount.amount.toString() == '123456789', "Amount is not correct");
+      assert((diff == 28 || diff == 29), "unlockTime is not correct");
     }
   });
 
   it("Is able to unlock solana", async () => {
-    const tx = await program.methods.unlockSol().rpc();
-    console.log("Unlocking SOL txid: ", tx);
+    
+    console.log(" waiting 30s...")
+    await sleep(31000)
+    console.log(" unlocking...")
+
+    const success = await lockmysol.unlockSol();
+
+    assert(success, "Tx should SUCCEED");
+    if (success) {
+      // log the lock account data
+      const lockAccountPda = lockmysol.getLockAccountPda();
+      const lockAccount = await program.account.lockAccountSol.fetch(lockAccountPda);
+      console.log("Lock Owner: ", lockAccount.owner.toBase58());
+      console.log("Lock amount base units: ", lockAccount.amount.toString());
+      console.log("Lock state: ", lockAccount.state);
+      console.log("Lock until: ", lockAccount.unlockTime.toString());
+
+      assert(lockAccount.owner.toBase58() == provider.wallet.publicKey.toBase58(), "Owner is not correct");
+      assert(lockAccount.state == 2, "State is not correct");
+      assert(lockAccount.amount.toString() == '0', "Amount is not correct");
+      assert(lockAccount.unlockTime.toString() == '0', "unlockTime is not correct");
+    }
   });
+
 
   it("Is able to lock tokens", async () => {
     const tx = await program.methods.lockTokensForTime().rpc();

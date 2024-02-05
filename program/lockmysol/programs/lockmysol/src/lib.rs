@@ -3,10 +3,12 @@ use anchor_lang::prelude::*;
 pub mod instructions;
 pub mod constants;
 pub mod state;
+pub mod error;
 
 pub use instructions::*;
 pub use constants::*;
 pub use state::*;
+pub use error::*;
 
 use anchor_lang::solana_program::{
     program::{invoke, invoke_signed},
@@ -24,7 +26,7 @@ pub mod lockmysol {
     }
 
     pub fn unlock_sol(ctx: Context<UnlockSol>) -> Result<()> {
-        Ok(())
+        instructions::unlock_sol(ctx)
     }
 
     pub fn lock_tokens_for_time(ctx: Context<LockTokensForTime>) -> Result<()> {
@@ -35,9 +37,6 @@ pub mod lockmysol {
         Ok(())
     }
 }
-
-#[derive(Accounts)]
-pub struct UnlockSol {}
 
 #[derive(Accounts)]
 pub struct LockTokensForTime {}
