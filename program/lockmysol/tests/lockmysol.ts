@@ -27,7 +27,17 @@ describe("lockmysol", () => {
 
     const success = await lockmysol.lockSolForTime(12345678, 30);
 
-    // get lock account and confirm
+    if (success) {
+      // log the lock account data
+      const lockAccountPda = lockmysol.getLockAccountPda();
+      const lockAccount = await program.account.lockAccountSol.fetch(lockAccountPda);
+      console.log("Lock Owner: ", lockAccount.owner.toBase58());
+      console.log("Lock amount base units: ", lockAccount.amount.toString());
+      console.log("Lock state: ", lockAccount.state);
+      console.log("Lock until: ", lockAccount.unlockTime.toString());
+      const diff = parseInt(lockAccount.unlockTime.toString()) - Math.floor(Date.now() / 1000);
+      console.log("Unlocking in ", diff, " seconds!");
+    }
   });
 
   it("Is able to unlock solana", async () => {
