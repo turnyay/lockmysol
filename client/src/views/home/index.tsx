@@ -38,7 +38,7 @@ export const HomeView: FC = ({ }) => {
         </div>
         <h4 className="md:w-full text-2x1 md:text-4xl text-center text-slate-300 my-2">
           <p>Lock your Solana tokens for a specified amount of time.</p>
-          <p className='text-slate-500 text-2x1 leading-relaxed'>Don't sell your Solana, lock it!</p>
+          <p className='text-slate-500 text-2x1 leading-relaxed'>Don't sell your SOL, lock it!</p>
         </h4>
       </div>
     </div>

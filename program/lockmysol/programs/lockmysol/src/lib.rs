@@ -33,17 +33,11 @@ pub mod lockmysol {
         instructions::unlock_sol(ctx, lock_sol_id_count)
     }
 
-    pub fn lock_tokens_for_time(ctx: Context<LockTokensForTime>) -> Result<()> {
-        Ok(())
+    pub fn lock_token_for_time(ctx: Context<LockTokenForTime>, lock_token_id_count: u64, amount_token: u64, duration_in_seconds: u64) -> Result<()> {
+        instructions::lock_token_for_time(ctx, lock_token_id_count, amount_token, duration_in_seconds)
     }
 
-    pub fn unlock_tokens(ctx: Context<UnlockTokens>) -> Result<()> {
-        Ok(())
+    pub fn unlock_token(ctx: Context<UnlockToken>, lock_token_id_count: u64) -> Result<()> {
+        instructions::unlock_token(ctx, lock_token_id_count)
     }
 }
-
-#[derive(Accounts)]
-pub struct LockTokensForTime {}
-
-#[derive(Accounts)]
-pub struct UnlockTokens {}
