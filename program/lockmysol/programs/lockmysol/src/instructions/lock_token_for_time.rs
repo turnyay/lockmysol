@@ -5,6 +5,9 @@ use anchor_lang::solana_program::{
     system_instruction
 };
 
+use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::associated_token::AssociatedToken;
+
 use crate::state::*;
 use crate::constants::*;
 use crate::error::LockMySolError;
@@ -25,15 +28,18 @@ pub struct LockTokenForTime<'info> {
     pub user_account: Account<'info, UserAccount>,
     #[account(
         mut,
-        seeds = [
-            SOL_ESCROW_SEED.as_ref(),
-            user.key().as_ref(),
-            lock_token_id_count.to_le_bytes().as_ref()
-        ],
-        bump,
+        associated_token::mint = token_mint_account,
+        associated_token::authority = user,
     )]
-    /// CHECK: PDA
-    pub escrow_account: AccountInfo<'info>,
+    pub user_token_account: Account<'info, TokenAccount>,
+    #[account(
+        init,
+        payer = user,
+        associated_token::mint = token_mint_account,
+        associated_token::authority = lock_account,
+    )]
+    pub escrow_token_account: Account<'info, TokenAccount>,
+    pub token_mint_account: Account<'info, Mint>,
     #[account(
         init,
         seeds = [
@@ -43,9 +49,11 @@ pub struct LockTokenForTime<'info> {
         ],
         bump,
         payer = user,
-        space = LockAccountSol::LEN,
+        space = LockAccountToken::LEN,
     )]
-    pub lock_account: Account<'info, LockAccountSol>,
+    pub lock_account: Account<'info, LockAccountToken>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
 
@@ -62,6 +70,7 @@ pub fn lock_token_for_time(
     // 3 - PDA LockAccount: state, owner, lockUntilTime, etc
 
     // Pass in: amount_token, duration in seconds
+
     let user_account = &mut ctx.accounts.user_account;
     if lock_token_id_count != user_account.lock_token_id_count {
         return Err(LockMySolError::InvalidLockId.into());
@@ -76,24 +85,26 @@ pub fn lock_token_for_time(
     lock_account.unlock_time = now.checked_add(duration_in_seconds).unwrap();
     lock_account.bump = ctx.bumps.lock_account;
 
-    // transfer SOL
-    invoke_signed(
-        &system_instruction::transfer(
-            &ctx.accounts.user.key(),
-            &ctx.accounts.escrow_account.key(),
-            amount_token
-        ),
-        &[
-            ctx.accounts.user.to_account_info().clone(),
-            ctx.accounts.escrow_account.to_account_info().clone(),
-            ctx.accounts.system_program.to_account_info().clone(),
-        ],
-        &[]
+    // transfer Tokens
+    let transfer_instr = spl_token::instruction::transfer(
+        &spl_token::ID,
+        &ctx.accounts.user_token_account.key(),    // Source 
+        &ctx.accounts.escrow_token_account.key(),  // Destination 
+        &ctx.accounts.user.key(),
+        &[],
+        amount_token,
     )?;
-
-    // if duration_in_seconds == 0 {
-    //     lock_account.state = 2; // unlocked
-    // }  ignore::: unlocks anyways 
+    let account_infos = &[
+        ctx.accounts.user_token_account.to_account_info().clone(),
+        ctx.accounts.escrow_token_account.to_account_info().clone(),
+        ctx.accounts.user.to_account_info().clone(),
+        ctx.accounts.token_program.to_account_info().clone(),
+    ];
+    invoke_signed(
+        &transfer_instr,
+        account_infos,
+        &[],
+    )?;
 
     Ok(())
 }

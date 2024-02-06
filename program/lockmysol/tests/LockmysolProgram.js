@@ -145,6 +145,64 @@ class LockmysolProgram {
         }
         return success;
     }
+    async lockTokenForTime(lockId, tokenMint, amount, durationInSeconds) {
+        
+        const escrowPda = this.getEscrowPda(lockId, tokenMint);
+        const lockAccountPda = this.getLockAccountPda(lockId);
+        const userAccountPda = this.getUserAccountPda();
+
+        const ix = await this.program.methods.lockTokenForTime(
+            new anchor.BN(lockId),
+            new anchor.BN(amount),
+            new anchor.BN(durationInSeconds),
+        ).accounts({
+            user: this.provider.wallet.publicKey,
+            userAccount: userAccountPda,
+            tokenMint: tokenMint,
+            escrowAccount: escrowPda,
+            lockAccount: lockAccountPda,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        }).instruction();
+        let tx = new anchor.web3.Transaction();
+        tx.add(ix);
+        let success = false;
+        try {
+            const txid = await this.provider.sendAndConfirm(tx);
+            console.log("   Lock Token successfully: %s", txid);
+            success = true;
+        } catch (err) {
+            console.log("   Lock Token error: %s", err);
+        }
+        return success;
+    }
+
+    async unlockToken(lockId) {
+
+        const escrowPda = this.getEscrowPda(lockId);
+        const lockAccountPda = this.getLockAccountPda(lockId);
+        const userAccountPda = this.getUserAccountPda();
+
+        const ix = await this.program.methods.unlockToken(
+            new anchor.BN(lockId)
+        ).accounts({
+            user: this.provider.wallet.publicKey,
+            userAccount: userAccountPda,
+            escrowAccount: escrowPda,
+            lockAccount: lockAccountPda,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        }).instruction();
+        let tx = new anchor.web3.Transaction();
+        tx.add(ix);
+        let success = false;
+        try {
+            const txid = await this.provider.sendAndConfirm(tx);
+            console.log("   Unlock Token successfully: %s", txid);
+            success = true;
+        } catch (err) {
+            console.log("   Unlock Token error: %s", err);
+        }
+        return success;
+    }
 
 }
 

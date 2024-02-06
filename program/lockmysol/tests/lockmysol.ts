@@ -163,12 +163,27 @@ describe("lockmysol", () => {
   });
 
   it("Is able to lock tokens", async () => {
-    const tx = await program.methods.lockTokensForTime().rpc();
-    console.log("Locking Tokens txid: ", tx);
+    
+    const success = await lockmysol.lockTokenForTime(1, 123456789, 30);
+
+    assert(success, "Tx should SUCCEED");
+    if (success) {
+      console.log('locked tokens ok');
+    }
+
   });
 
-  it("Is able to lock solana", async () => {
-    const tx = await program.methods.unlockTokens().rpc();
-    console.log("Locking SOL txid: ", tx);
+  it("Is able to unlock tokens", async () => {
+
+    console.log(" waiting 30s...")
+    await sleep(31000)
+    console.log(" unlocking...")
+
+    const success = await lockmysol.unlockToken(1);
+
+    assert(success, "Tx should SUCCEED");
+    if (success) {
+      console.log('unlocked tokens ok');
+    }
   });
 });

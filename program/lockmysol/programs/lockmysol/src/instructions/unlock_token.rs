@@ -16,15 +16,17 @@ pub struct UnlockToken<'info> {
     pub user: Signer<'info>,
     #[account(
         mut,
-        seeds = [
-            SOL_ESCROW_SEED.as_ref(),
-            user.key().as_ref(),
-            lock_token_id_count.to_le_bytes().as_ref()
-        ],
-        bump,
+        associated_token::mint = token_mint_account,
+        associated_token::authority = user,
     )]
-    /// CHECK: PDA
-    pub escrow_account: AccountInfo<'info>,
+    pub user_token_account: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        associated_token::mint = token_mint_account,
+        associated_token::authority = lock_account,
+    )]
+    pub escrow_token_account: Account<'info, TokenAccount>,
+    pub token_mint_account: Account<'info, Mint>,
     #[account(
         mut,
         seeds = [
@@ -68,33 +70,41 @@ pub fn unlock_token(ctx: Context<UnlockToken>, lock_token_id_count: u64) -> Resu
 
         // confirm escrow balance = acc amt?
         let id_bytes = lock_token_id_count.to_le_bytes();
-        let bump = ctx.bumps.escrow_account;
+        let bump = ctx.bumps.lock_account;
+        let user_key = &ctx.accounts.user.key();
         let user_key = &ctx.accounts.user.key();
         let signer_seeds: &[&[_]] = &[
-            SOL_ESCROW_SEED.as_ref(),
+            LOCK_ACCOUNT.as_ref(),
             user_key.as_ref(),
             id_bytes.as_ref(),
             &[bump],
         ];
         
-        // transfer SOL
+        // transfer Tokens
+        let transfer_instr = spl_token::instruction::transfer(
+            &spl_token::ID,
+            &ctx.accounts.escrow_token_account.key(),  // Source 
+            &ctx.accounts.user_token_account.key(),    // Destination 
+            &ctx.accounts.lock_account.key(),
+            &[],
+            lock_account.amount,
+        )?;
+        let account_infos = &[
+            ctx.accounts.escrow_token_account.to_account_info().clone(),
+            ctx.accounts.user_token_account.to_account_info().clone(),
+            ctx.accounts.lock_account.to_account_info().clone(),
+            ctx.accounts.token_program.to_account_info().clone(),
+        ];
         invoke_signed(
-            &system_instruction::transfer(
-                &ctx.accounts.escrow_account.key(),
-                &ctx.accounts.user.key(),
-                lock_account.amount
-            ),
-            &[
-                ctx.accounts.escrow_account.to_account_info().clone(),
-                ctx.accounts.user.to_account_info().clone(),
-                ctx.accounts.system_program.to_account_info().clone(),
-            ],
+            &transfer_instr,
+            account_infos,
             &[&signer_seeds],
         )?;
 
         lock_account.state = 2;         // completed
         lock_account.amount = 0;        // ???????????????? do this?
         lock_account.unlock_time = 0;   // ???????????????? do this?
+
     }
 
     Ok(())
