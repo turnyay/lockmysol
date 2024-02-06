@@ -10,6 +10,7 @@ use crate::constants::*;
 use crate::error::LockMySolError;
 
 #[derive(Accounts)]
+#[instruction(lock_sol_id_count: u64)]
 pub struct UnlockSol<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
@@ -18,6 +19,7 @@ pub struct UnlockSol<'info> {
         seeds = [
             SOL_ESCROW_SEED.as_ref(),
             user.key().as_ref(),
+            lock_sol_id_count.to_le_bytes().as_ref()
         ],
         bump,
     )]
@@ -28,6 +30,7 @@ pub struct UnlockSol<'info> {
         seeds = [
             LOCK_ACCOUNT.as_ref(),
             user.key().as_ref(),
+            lock_sol_id_count.to_le_bytes().as_ref()
         ],
         bump,
     )]
@@ -35,7 +38,7 @@ pub struct UnlockSol<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn unlock_sol(ctx: Context<UnlockSol>) -> Result<()> {
+pub fn unlock_sol(ctx: Context<UnlockSol>, lock_sol_id_count: u64) -> Result<()> {
 
     // Accounts:
     // 1 - signer
@@ -56,17 +59,21 @@ pub fn unlock_sol(ctx: Context<UnlockSol>) -> Result<()> {
 
     if now <= lock_account.unlock_time {
         return Err(LockMySolError::TooEarlyToUnlock.into());
+        // let diff =  lock_account.unlock_time.checked_sub(now).unwrap();
+        // msg!("*** ERROR *** unable to unlock, time diff is: {} seconds", diff);
     }
 
     if now > lock_account.unlock_time {
         msg!("time has passed ok");
 
         // confirm escrow balance = acc amt?
+        let id_bytes = lock_sol_id_count.to_le_bytes();
         let bump = ctx.bumps.escrow_account;
         let user_key = &ctx.accounts.user.key();
         let signer_seeds: &[&[_]] = &[
             SOL_ESCROW_SEED.as_ref(),
             user_key.as_ref(),
+            id_bytes.as_ref(),
             &[bump],
         ];
         

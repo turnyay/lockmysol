@@ -21,12 +21,16 @@ declare_id!("5b6JMVrHatTdGFnHtKb2iuBquDmspYsPq1HLKifS8QHA");
 pub mod lockmysol {
     use super::*;
 
-    pub fn lock_sol_for_time(ctx: Context<LockSolForTime>, amount_sol: u64, duration_in_seconds: u64) -> Result<()> {
-        instructions::lock_sol_for_time(ctx, amount_sol, duration_in_seconds)
+    pub fn create_user_account(ctx: Context<CreateUserAccount>) -> Result<()> {
+        instructions::create_user_account(ctx)
     }
 
-    pub fn unlock_sol(ctx: Context<UnlockSol>) -> Result<()> {
-        instructions::unlock_sol(ctx)
+    pub fn lock_sol_for_time(ctx: Context<LockSolForTime>, lock_sol_id_count: u64, amount_sol: u64, duration_in_seconds: u64) -> Result<()> {
+        instructions::lock_sol_for_time(ctx, lock_sol_id_count, amount_sol, duration_in_seconds)
+    }
+
+    pub fn unlock_sol(ctx: Context<UnlockSol>, lock_sol_id_count: u64) -> Result<()> {
+        instructions::unlock_sol(ctx, lock_sol_id_count)
     }
 
     pub fn lock_tokens_for_time(ctx: Context<LockTokensForTime>) -> Result<()> {

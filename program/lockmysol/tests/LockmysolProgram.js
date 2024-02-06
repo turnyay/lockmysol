@@ -1,4 +1,8 @@
 import * as anchor from "@coral-xyz/anchor";
+
+import {
+    longToByteArray,
+  } from "./util";
 import {
     PublicKey,
     SYSVAR_RENT_PUBKEY,
@@ -9,10 +13,6 @@ import {
     ASSOCIATED_TOKEN_PROGRAM_ID,
     TOKEN_PROGRAM_ID
 } from "@solana/spl-token";
-
-async function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 /*****************************************************************
     
@@ -27,10 +27,10 @@ class LockmysolProgram {
         this.programId = new PublicKey(data.programId);
     }
 
-    getEscrowPda() {
+    getUserAccountPda() {
         const [pda] = PublicKey.findProgramAddressSync(
             [
-                Buffer.from("SOLANA-ESCROW"),
+                Buffer.from("USER-ACCOUNT"),
                 this.provider.wallet.publicKey.toBuffer(),
             ],
             this.program.programId
@@ -38,27 +38,69 @@ class LockmysolProgram {
         return pda;
     }
 
-    getLockAccountPda() {
+    async getUserAccount() {
+        const userAccountPda = this.getUserAccountPda();
+        const userAccount = await this.program.account.userAccount.fetch(userAccountPda);
+        return userAccount;
+    }
+
+    getLockAccountPda(lockId) {
         const [pda] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("LOCK-ACCOUNT"),
                 this.provider.wallet.publicKey.toBuffer(),
+                longToByteArray(lockId),
             ],
             this.program.programId
         );
         return pda;
     }
 
-    async lockSolForTime(amount, durationInSeconds) {
+    getEscrowPda(lockId) {
+        const [pda] = PublicKey.findProgramAddressSync(
+            [
+                Buffer.from("SOLANA-ESCROW"),
+                this.provider.wallet.publicKey.toBuffer(),
+                longToByteArray(lockId),
+            ],
+            this.program.programId
+        );
+        return pda;
+    }
 
-        const escrowPda = this.getEscrowPda();
-        const lockAccountPda = this.getLockAccountPda();
+    async createUserAccount() {
+        const userAccountPda = this.getUserAccountPda();
+        const ix = await this.program.methods.createUserAccount().accounts({
+            user: this.provider.wallet.publicKey,
+            userAccount: userAccountPda,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        }).instruction();
+        let tx = new anchor.web3.Transaction();
+        tx.add(ix);
+        let success = false;
+        try {
+            const txid = await this.provider.sendAndConfirm(tx);
+            console.log("   Create User Account successfully: %s", txid);
+            success = true;
+        } catch (err) {
+            console.log("   Create User Account error: %s", err);
+        }
+        return success;
+    }
+
+    async lockSolForTime(lockId, amount, durationInSeconds) {
+        
+        const escrowPda = this.getEscrowPda(lockId);
+        const lockAccountPda = this.getLockAccountPda(lockId);
+        const userAccountPda = this.getUserAccountPda();
 
         const ix = await this.program.methods.lockSolForTime(
+            new anchor.BN(lockId),
             new anchor.BN(amount),
             new anchor.BN(durationInSeconds),
         ).accounts({
             user: this.provider.wallet.publicKey,
+            userAccount: userAccountPda,
             escrowAccount: escrowPda,
             lockAccount: lockAccountPda,
             systemProgram: anchor.web3.SystemProgram.programId,
@@ -76,13 +118,17 @@ class LockmysolProgram {
         return success;
     }
 
-    async unlockSol() {
+    async unlockSol(lockId) {
 
-        const escrowPda = this.getEscrowPda();
-        const lockAccountPda = this.getLockAccountPda();
+        const escrowPda = this.getEscrowPda(lockId);
+        const lockAccountPda = this.getLockAccountPda(lockId);
+        const userAccountPda = this.getUserAccountPda();
 
-        const ix = await this.program.methods.unlockSol().accounts({
+        const ix = await this.program.methods.unlockSol(
+            new anchor.BN(lockId)
+        ).accounts({
             user: this.provider.wallet.publicKey,
+            userAccount: userAccountPda,
             escrowAccount: escrowPda,
             lockAccount: lockAccountPda,
             systemProgram: anchor.web3.SystemProgram.programId,

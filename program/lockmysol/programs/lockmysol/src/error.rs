@@ -7,5 +7,8 @@ pub enum LockMySolError {
     TooEarlyToUnlock,
     /// 6001
     #[msg("InvalidState")]
-    InvalidState
+    InvalidState,
+    /// 6002
+    #[msg("InvalidLockId")]
+    InvalidLockId,
 }

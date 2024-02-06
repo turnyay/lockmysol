@@ -26,17 +26,35 @@ describe("lockmysol", () => {
     program: program,
   });
 
-  it("Is able to lock solana", async () => {
+  it("Is able to create user account", async () => {
 
     // Get airdrop for txs
     provider.connection.requestAirdrop(provider.wallet.publicKey, 10000000000);
 
-    const success = await lockmysol.lockSolForTime(123456789, 30);
+    const success = await lockmysol.createUserAccount();
 
     assert(success, "Tx should SUCCEED");
     if (success) {
       // log the lock account data
-      const lockAccountPda = lockmysol.getLockAccountPda();
+      const userAccount = await lockmysol.getUserAccount();
+      console.log("user Owner: ", userAccount.owner.toBase58());
+      console.log("user lock sol id count: ", userAccount.lockSolIdCount.toString());
+      console.log("user lock token id count: ", userAccount.lockTokenIdCount.toString());
+
+      assert(userAccount.owner.toBase58() == provider.wallet.publicKey.toBase58(), "Owner is not correct");
+      assert(userAccount.lockSolIdCount.toString() == '1', "lockSolIdCount is not correct");
+      assert(userAccount.lockTokenIdCount.toString() == '1', "lockTokenIdCount is not correct");
+    }
+  });
+
+  it("Is able to lock solana", async () => {
+
+    const success = await lockmysol.lockSolForTime(1, 123456789, 30);
+
+    assert(success, "Tx should SUCCEED");
+    if (success) {
+      // log the lock account data
+      const lockAccountPda = lockmysol.getLockAccountPda(1);
       const lockAccount = await program.account.lockAccountSol.fetch(lockAccountPda);
       console.log("Lock Owner: ", lockAccount.owner.toBase58());
       console.log("Lock amount base units: ", lockAccount.amount.toString());
@@ -54,12 +72,12 @@ describe("lockmysol", () => {
 
   it("Is ***NOT*** able to unlock solana", async () => {
     
-    const success = await lockmysol.unlockSol();
+    const success = await lockmysol.unlockSol(1);
 
     assert(!success, "Tx should FAIL");
     if (!success) {
       // log the lock account data
-      const lockAccountPda = lockmysol.getLockAccountPda();
+      const lockAccountPda = lockmysol.getLockAccountPda(1);
       const lockAccount = await program.account.lockAccountSol.fetch(lockAccountPda);
       console.log("Lock Owner: ", lockAccount.owner.toBase58());
       console.log("Lock amount base units: ", lockAccount.amount.toString());
@@ -81,12 +99,12 @@ describe("lockmysol", () => {
     await sleep(31000)
     console.log(" unlocking...")
 
-    const success = await lockmysol.unlockSol();
+    const success = await lockmysol.unlockSol(1);
 
     assert(success, "Tx should SUCCEED");
     if (success) {
       // log the lock account data
-      const lockAccountPda = lockmysol.getLockAccountPda();
+      const lockAccountPda = lockmysol.getLockAccountPda(1);
       const lockAccount = await program.account.lockAccountSol.fetch(lockAccountPda);
       console.log("Lock Owner: ", lockAccount.owner.toBase58());
       console.log("Lock amount base units: ", lockAccount.amount.toString());
@@ -99,7 +117,6 @@ describe("lockmysol", () => {
       assert(lockAccount.unlockTime.toString() == '0', "unlockTime is not correct");
     }
   });
-
 
   it("Is able to lock tokens", async () => {
     const tx = await program.methods.lockTokensForTime().rpc();

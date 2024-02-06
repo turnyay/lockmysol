@@ -7,16 +7,28 @@ use anchor_lang::solana_program::{
 
 use crate::state::*;
 use crate::constants::*;
+use crate::error::LockMySolError;
 
 #[derive(Accounts)]
+#[instruction(lock_sol_id_count: u64)]
 pub struct LockSolForTime<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(
         mut,
         seeds = [
+            USER_ACCOUNT.as_ref(),
+            user.key().as_ref(),
+        ],
+        bump,
+    )]
+    pub user_account: Account<'info, UserAccount>,
+    #[account(
+        mut,
+        seeds = [
             SOL_ESCROW_SEED.as_ref(),
             user.key().as_ref(),
+            lock_sol_id_count.to_le_bytes().as_ref()
         ],
         bump,
     )]
@@ -27,6 +39,7 @@ pub struct LockSolForTime<'info> {
         seeds = [
             LOCK_ACCOUNT.as_ref(),
             user.key().as_ref(),
+            lock_sol_id_count.to_le_bytes().as_ref()
         ],
         bump,
         payer = user,
@@ -36,8 +49,7 @@ pub struct LockSolForTime<'info> {
     pub system_program: Program<'info, System>,
 }
 
-
-pub fn lock_sol_for_time(ctx: Context<LockSolForTime>, amount_sol: u64, duration_in_seconds: u64) -> Result<()> {
+pub fn lock_sol_for_time(ctx: Context<LockSolForTime>, lock_sol_id_count: u64, amount_sol: u64, duration_in_seconds: u64) -> Result<()> {
 
     // Accounts:
     // 1 - signer
@@ -45,6 +57,11 @@ pub fn lock_sol_for_time(ctx: Context<LockSolForTime>, amount_sol: u64, duration
     // 3 - PDA LockAccount: state, owner, lockUntilTime, etc
 
     // Pass in: amount_sol, duration in seconds
+    let user_account = &mut ctx.accounts.user_account;
+    if lock_sol_id_count != user_account.lock_sol_id_count {
+        return Err(LockMySolError::InvalidLockId.into());
+    }
+    user_account.lock_sol_id_count += 1;  // starts at 1, goes to u64::MAX
 
     let now = Clock::get()?.unix_timestamp as u64;
     let lock_account = &mut ctx.accounts.lock_account;
@@ -69,9 +86,9 @@ pub fn lock_sol_for_time(ctx: Context<LockSolForTime>, amount_sol: u64, duration
         &[]
     )?;
 
-    if duration_in_seconds == 0 {
-        lock_account.state = 2; // unlocked
-    }
+    // if duration_in_seconds == 0 {
+    //     lock_account.state = 2; // unlocked
+    // }  ignore::: unlocks anyways 
 
     Ok(())
 }
