@@ -70,6 +70,29 @@ describe("lockmysol", () => {
     }
   });
 
+  it("Is able to lock solana a SECOND TIME ", async () => {
+
+    const success = await lockmysol.lockSolForTime(2, 999999, 30);
+
+    assert(success, "Tx should SUCCEED");
+    if (success) {
+      // log the lock account data
+      const lockAccountPda = lockmysol.getLockAccountPda(2);
+      const lockAccount = await program.account.lockAccountSol.fetch(lockAccountPda);
+      console.log("Lock Owner: ", lockAccount.owner.toBase58());
+      console.log("Lock amount base units: ", lockAccount.amount.toString());
+      console.log("Lock state: ", lockAccount.state);
+      console.log("Lock until: ", lockAccount.unlockTime.toString());
+      const diff = parseInt(lockAccount.unlockTime.toString()) - Math.floor(Date.now() / 1000);
+      console.log("Unlocking in ", diff, " seconds!");
+
+      assert(lockAccount.owner.toBase58() == provider.wallet.publicKey.toBase58(), "Owner is not correct");
+      assert(lockAccount.state == 1, "State is not correct");
+      assert(lockAccount.amount.toString() == '999999', "Amount is not correct");
+      assert((diff == 30 || diff == 29), "unlockTime is not correct");
+    }
+  });
+
   it("Is ***NOT*** able to unlock solana", async () => {
     
     const success = await lockmysol.unlockSol(1);
@@ -105,6 +128,27 @@ describe("lockmysol", () => {
     if (success) {
       // log the lock account data
       const lockAccountPda = lockmysol.getLockAccountPda(1);
+      const lockAccount = await program.account.lockAccountSol.fetch(lockAccountPda);
+      console.log("Lock Owner: ", lockAccount.owner.toBase58());
+      console.log("Lock amount base units: ", lockAccount.amount.toString());
+      console.log("Lock state: ", lockAccount.state);
+      console.log("Lock until: ", lockAccount.unlockTime.toString());
+
+      assert(lockAccount.owner.toBase58() == provider.wallet.publicKey.toBase58(), "Owner is not correct");
+      assert(lockAccount.state == 2, "State is not correct");
+      assert(lockAccount.amount.toString() == '0', "Amount is not correct");
+      assert(lockAccount.unlockTime.toString() == '0', "unlockTime is not correct");
+    }
+  });
+
+  it("Is able to unlock solana for SECOND LOCK", async () => {
+
+    const success = await lockmysol.unlockSol(2);
+
+    assert(success, "Tx should SUCCEED");
+    if (success) {
+      // log the lock account data
+      const lockAccountPda = lockmysol.getLockAccountPda(2);
       const lockAccount = await program.account.lockAccountSol.fetch(lockAccountPda);
       console.log("Lock Owner: ", lockAccount.owner.toBase58());
       console.log("Lock amount base units: ", lockAccount.amount.toString());
