@@ -4,6 +4,8 @@ use anchor_lang::solana_program::{
     program::{invoke, invoke_signed},
     system_instruction
 };
+use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::associated_token::AssociatedToken;
 
 use crate::state::*;
 use crate::constants::*;
@@ -37,6 +39,8 @@ pub struct UnlockToken<'info> {
         bump,
     )]
     pub lock_account: Account<'info, LockAccountSol>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
 
@@ -72,7 +76,6 @@ pub fn unlock_token(ctx: Context<UnlockToken>, lock_token_id_count: u64) -> Resu
         let id_bytes = lock_token_id_count.to_le_bytes();
         let bump = ctx.bumps.lock_account;
         let user_key = &ctx.accounts.user.key();
-        let user_key = &ctx.accounts.user.key();
         let signer_seeds: &[&[_]] = &[
             LOCK_ACCOUNT.as_ref(),
             user_key.as_ref(),
@@ -85,14 +88,14 @@ pub fn unlock_token(ctx: Context<UnlockToken>, lock_token_id_count: u64) -> Resu
             &spl_token::ID,
             &ctx.accounts.escrow_token_account.key(),  // Source 
             &ctx.accounts.user_token_account.key(),    // Destination 
-            &ctx.accounts.lock_account.key(),
+            &lock_account.key(),
             &[],
             lock_account.amount,
         )?;
         let account_infos = &[
             ctx.accounts.escrow_token_account.to_account_info().clone(),
             ctx.accounts.user_token_account.to_account_info().clone(),
-            ctx.accounts.lock_account.to_account_info().clone(),
+            lock_account.to_account_info().clone(),
             ctx.accounts.token_program.to_account_info().clone(),
         ];
         invoke_signed(

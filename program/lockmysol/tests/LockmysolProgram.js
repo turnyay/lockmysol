@@ -2,6 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 
 import {
     longToByteArray,
+    createAssociatedTokenAccountInstruction,
   } from "./util";
 import {
     PublicKey,
@@ -13,6 +14,7 @@ import {
     ASSOCIATED_TOKEN_PROGRAM_ID,
     TOKEN_PROGRAM_ID
 } from "@solana/spl-token";
+import { createMint, mintTo } from "@solana/spl-token";
 
 /*****************************************************************
     
@@ -145,11 +147,62 @@ class LockmysolProgram {
         }
         return success;
     }
+
+    async createTokenMint() {
+
+
+    }
+
+    getUserTokenAccount(mint) {
+        let userTokenAccount;
+        [userTokenAccount] = PublicKey.findProgramAddressSync(
+            [this.provider.wallet.publicKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+            ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+        return userTokenAccount;
+    }
+
+    getEscrowTokenAccount(lockAccountPda, mint) {
+        let escrowTokenAccount;
+        [escrowTokenAccount] = PublicKey.findProgramAddressSync(
+            [lockAccountPda.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+            ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+        return escrowTokenAccount;
+    }
+
+    async mintTokens(mint, tokenAccount, amount) {
+        const txid = await mintTo(
+            this.provider.connection,
+            [this.provider.wallet],
+            mint,
+            tokenAccount,
+            this.provider.wallet, // auth
+            amount
+        );
+        return txid;
+    }
+
+    async createATokenAccount(mint) {
+        const userTokenAccount = this.getUserTokenAccount(mint);
+        const tx = new anchor.web3.Transaction();
+        const ix = await createAssociatedTokenAccountInstruction(
+            userTokenAccount,
+            this.provider.wallet.publicKey,
+            this.provider.wallet.publicKey,
+            mint
+        );
+        tx.add(ix);
+        const txid = await this.provider.sendAndConfirm(tx);
+        console.log("   Create user token account successfully: %s", txid);
+    }
+
     async lockTokenForTime(lockId, tokenMint, amount, durationInSeconds) {
-        
-        const escrowPda = this.getEscrowPda(lockId, tokenMint);
+
         const lockAccountPda = this.getLockAccountPda(lockId);
         const userAccountPda = this.getUserAccountPda();
+        const userTokenAccount = this.getUserTokenAccount(tokenMint);
+        const escrowTokenAccount = this.getEscrowTokenAccount(lockAccountPda, tokenMint);
 
         const ix = await this.program.methods.lockTokenForTime(
             new anchor.BN(lockId),
@@ -158,9 +211,12 @@ class LockmysolProgram {
         ).accounts({
             user: this.provider.wallet.publicKey,
             userAccount: userAccountPda,
+            userTokenAccount: userTokenAccount,
+            escrowTokenAccount: escrowTokenAccount,
             tokenMint: tokenMint,
-            escrowAccount: escrowPda,
             lockAccount: lockAccountPda,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
         }).instruction();
         let tx = new anchor.web3.Transaction();

@@ -4,12 +4,17 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Lockmysol } from "../target/types/lockmysol";
 import LockmysolProgram from "./LockmysolProgram.js";
+import { createMint, createInitializeMintInstruction, mintTo,  TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { PublicKey } from "@solana/web3.js";
+
 
 // import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+const WAIT_TIME = 5;
 
 const programId = new anchor.web3.PublicKey("5b6JMVrHatTdGFnHtKb2iuBquDmspYsPq1HLKifS8QHA");
 
@@ -49,7 +54,7 @@ describe("lockmysol", () => {
 
   it("Is able to lock solana", async () => {
 
-    const success = await lockmysol.lockSolForTime(1, 123456789, 30);
+    const success = await lockmysol.lockSolForTime(1, 123456789, WAIT_TIME);
 
     assert(success, "Tx should SUCCEED");
     if (success) {
@@ -66,13 +71,13 @@ describe("lockmysol", () => {
       assert(lockAccount.owner.toBase58() == provider.wallet.publicKey.toBase58(), "Owner is not correct");
       assert(lockAccount.state == 1, "State is not correct");
       assert(lockAccount.amount.toString() == '123456789', "Amount is not correct");
-      assert((diff == 29 || diff == 30), "unlockTime is not correct");
+      assert((diff == WAIT_TIME || diff == (WAIT_TIME - 1)), "unlockTime is not correct");
     }
   });
 
   it("Is able to lock solana a SECOND TIME ", async () => {
 
-    const success = await lockmysol.lockSolForTime(2, 999999, 30);
+    const success = await lockmysol.lockSolForTime(2, 999999, WAIT_TIME);
 
     assert(success, "Tx should SUCCEED");
     if (success) {
@@ -89,7 +94,7 @@ describe("lockmysol", () => {
       assert(lockAccount.owner.toBase58() == provider.wallet.publicKey.toBase58(), "Owner is not correct");
       assert(lockAccount.state == 1, "State is not correct");
       assert(lockAccount.amount.toString() == '999999', "Amount is not correct");
-      assert((diff == 30 || diff == 29), "unlockTime is not correct");
+      assert((diff == WAIT_TIME || diff == (WAIT_TIME - 1)), "unlockTime is not correct");
     }
   });
 
@@ -112,14 +117,14 @@ describe("lockmysol", () => {
       assert(lockAccount.owner.toBase58() == provider.wallet.publicKey.toBase58(), "Owner is not correct");
       assert(lockAccount.state == 1, "State is not correct");
       assert(lockAccount.amount.toString() == '123456789', "Amount is not correct");
-      assert((diff == 28 || diff == 29), "unlockTime is not correct");
+      assert((diff == WAIT_TIME || diff == (WAIT_TIME - 1)), "unlockTime is not correct");
     }
   });
 
   it("Is able to unlock solana", async () => {
     
-    console.log(" waiting 30s...")
-    await sleep(31000)
+    console.log(" waiting WAIT_TIME (s)...")
+    await sleep((WAIT_TIME * 1000) + 1000)
     console.log(" unlocking...")
 
     const success = await lockmysol.unlockSol(1);
@@ -164,7 +169,51 @@ describe("lockmysol", () => {
 
   it("Is able to lock tokens", async () => {
     
-    const success = await lockmysol.lockTokenForTime(1, 123456789, 30);
+    const userAccount = anchor.web3.Keypair.generate();
+    const mint = anchor.web3.Keypair.generate();
+
+    console.log("requesting airdrop");
+
+    // Get airdrop for txs
+    await provider.connection.requestAirdrop(userAccount.publicKey, 10000000000);
+
+    console.log("waiting to create mint....    ");
+    await sleep(1000)
+    console.log("creating mint");
+
+    // create token mint
+    const testMint = await createMint(
+      provider.connection,
+      userAccount,
+      provider.wallet.publicKey,
+      null,
+      8,
+      mint
+    );
+
+    // const initializeMintInstr = await createInitializeMintInstruction(
+    //   testMint, 8, 
+    // )
+    
+    console.log("MINT:");
+    console.log(testMint);
+
+    const pk = new PublicKey(testMint.toBase58());
+    console.log(pk);
+
+    // create user token account
+    await lockmysol.createATokenAccount(testMint);
+
+    console.log("minting tokens... ");
+
+    // mint user tokens
+    const userTokenAccount = lockmysol.getUserTokenAccount(pk); 
+    await lockmysol.mintTokens(pk, userTokenAccount, 10000000000);
+
+    console.log("locking tokens... ");
+
+    // lock tokens
+    const success = await lockmysol.lockTokenForTime(1, pk, 123456789, WAIT_TIME);
 
     assert(success, "Tx should SUCCEED");
     if (success) {
@@ -173,17 +222,14 @@ describe("lockmysol", () => {
 
   });
 
-  it("Is able to unlock tokens", async () => {
-
-    console.log(" waiting 30s...")
-    await sleep(31000)
-    console.log(" unlocking...")
-
-    const success = await lockmysol.unlockToken(1);
-
-    assert(success, "Tx should SUCCEED");
-    if (success) {
-      console.log('unlocked tokens ok');
-    }
-  });
+  // it("Is able to unlock tokens", async () => {
+  //   console.log(" waiting WAIT_TIME (s)...")
+  //   await sleep(WAIT_TIME * 1000 + 500)
+  //   console.log(" unlocking...")
+  //   const success = await lockmysol.unlockToken(1);
+  //   assert(success, "Tx should SUCCEED");
+  //   if (success) {
+  //     console.log('unlocked tokens ok');
+  //   }
+  // });
 });

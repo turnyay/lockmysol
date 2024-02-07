@@ -28,18 +28,18 @@ pub struct LockTokenForTime<'info> {
     pub user_account: Account<'info, UserAccount>,
     #[account(
         mut,
-        associated_token::mint = token_mint_account,
+        associated_token::mint = token_mint,
         associated_token::authority = user,
     )]
     pub user_token_account: Account<'info, TokenAccount>,
     #[account(
         init,
         payer = user,
-        associated_token::mint = token_mint_account,
+        associated_token::mint = token_mint,
         associated_token::authority = lock_account,
     )]
     pub escrow_token_account: Account<'info, TokenAccount>,
-    pub token_mint_account: Account<'info, Mint>,
+    pub token_mint: Account<'info, Mint>,
     #[account(
         init,
         seeds = [
@@ -82,6 +82,7 @@ pub fn lock_token_for_time(
     lock_account.owner = *ctx.accounts.user.key;
     lock_account.state = 1; // locked
     lock_account.amount = amount_token;
+    lock_account.token_mint = ctx.accounts.token_mint.key();
     lock_account.unlock_time = now.checked_add(duration_in_seconds).unwrap();
     lock_account.bump = ctx.bumps.lock_account;
 
