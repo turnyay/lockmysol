@@ -2,11 +2,6 @@
 import { FC, useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { IDL } from "../../idl/lockmysol";
-import LockmysolProgram from "../../LockmysolProgram.js";
-
 import * as React from 'react';
 import { styled } from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
@@ -33,9 +28,8 @@ import useUserSOLBalanceStore from '../../stores/useUserSOLBalanceStore';
 import { ColorSwatchIcon } from '@heroicons/react/outline';
 
 const maxDays = 365;
-const programId = new anchor.web3.PublicKey("5b6JMVrHatTdGFnHtKb2iuBquDmspYsPq1HLKifS8QHA");
 
-export const HomeView: FC = ({ }) => {
+export const TokensView: FC = ({ }) => {
   const wallet = useWallet();
   const { connection } = useConnection();
 
@@ -77,51 +71,11 @@ export const HomeView: FC = ({ }) => {
   };
 
   const handleAmountBlur = () => {
-    const amountString = String(amount); // Convert amount to a string
-    if (amountString.includes(".")) {
+    if (amount.includes(".")) {
       setAmount(amount);
     } else {
       setAmount(Number(amount));
     }
-  };
-
-  const handleLockButtonClick = () => {
-    console.log(`Locking ${amount} SOLANA for ${duration} days`);
-
-    const provider = new anchor.AnchorProvider(
-        connection,
-        wallet,
-        {
-            commitment: "recent",
-            preflightCommitment: "recent",
-            skipPreflight: true,
-        }
-    );
-    // const program = anchor.workspace.Lockmysol as Program<Lockmysol>;   <anchor.Idl>
-    const program = new Program(IDL, programId, provider);
-
-    const lockmysol = new LockmysolProgram({
-      provider: provider,
-      programId: programId,
-      program: program,
-    });
-
-    // Get airdrop for txs
-    provider.connection.requestAirdrop(provider.wallet.publicKey, 10000000000);
-
-    const durationSeconds = duration * 24 * 60 * 60;
-    const lockIndex = 1;
-    const amountBase = Number(amount) * 1000000000;
-
-    console.log('LOCKING ' + amountBase + ' LAMPORTS FOR ' + durationSeconds + ' SECONDS');
-
-    lockmysol.createUserAccount().then((result) => { 
-      lockmysol.lockSolForTime(lockIndex, amountBase, durationSeconds).then((result) => { 
-        console.log('LOCKED SOLANA.......');
-        console.log(result);
-      });
-    });
-
   };
 
   return (
@@ -188,7 +142,7 @@ export const HomeView: FC = ({ }) => {
             </Grid>
           </Grid>
         </Box>
-        <Button variant="contained" onClick={handleLockButtonClick}>LOCK {amount} SOLANA FOR {duration} DAYS</Button>
+        <Button variant="contained">LOCK {amount} SOLANA</Button>
       </div>
     </div>
   );

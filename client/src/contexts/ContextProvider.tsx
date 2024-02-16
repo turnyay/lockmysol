@@ -25,8 +25,8 @@ const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
     let endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
     if (network === 'devnet') {
-        endpoint = useMemo(() => "http://api.devnet.solana.com", [network]);
-        // endpoint = useMemo(() => "http://127.0.0.1:8899", [network]);
+        // endpoint = useMemo(() => "http://api.devnet.solana.com", [network]);
+        endpoint = useMemo(() => "http://127.0.0.1:8899", [network]);
         // endpoint = useMemo(() => "https://rpc-devnet.hellomoon.io/a292109c-429c-4e87-9567-c29ae9743ecd", [network]);
         // endpoint = useMemo(() => "https://rpc-devnet.helius.xyz/?api-key=fbe23b51-5eb3-4b36-bc0c-78b129a8757e", [network]);
     }
