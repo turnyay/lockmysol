@@ -85,7 +85,7 @@ export const HomeView: FC = ({ }) => {
     }
   };
 
-  const handleLockButtonClick = () => {
+  const handleLockButtonClick  = async () => {
     console.log(`Locking ${amount} SOLANA for ${duration} days`);
 
     const provider = new anchor.AnchorProvider(
@@ -115,13 +115,17 @@ export const HomeView: FC = ({ }) => {
 
     console.log('LOCKING ' + amountBase + ' LAMPORTS FOR ' + durationSeconds + ' SECONDS');
 
-    lockmysol.createUserAccount().then((result) => { 
-      lockmysol.lockSolForTime(lockIndex, amountBase, durationSeconds).then((result) => { 
-        console.log('LOCKED SOLANA.......');
-        console.log(result);
-      });
-    });
-
+    try {
+      // saved user
+      const userAccount = await lockmysol.getUserAccount();
+      const savedId = userAccount.lockSolIdCount.toNumber();
+      console.log("saved ID: ", savedId);
+      await lockmysol.lockSolForTime(savedId, amountBase, durationSeconds)
+    } catch (e) {
+      // new user
+      await lockmysol.createUserAccount();
+      await lockmysol.lockSolForTime(1, amountBase, durationSeconds)
+    }
   };
 
   return (
