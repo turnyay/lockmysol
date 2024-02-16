@@ -22,6 +22,8 @@ const Input = styled(MuiInput)`
   width: 42px;
 `;
 
+import { notify } from "../../utils/notifications";
+
 // Wallet
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 
@@ -119,11 +121,26 @@ export const HomeView: FC = ({ }) => {
       const userAccount = await lockmysol.getUserAccount();
       const savedId = userAccount.lockSolIdCount.toNumber();
       console.log("saved ID: ", savedId);
-      await lockmysol.lockSolForTime(savedId, amountBase, durationSeconds)
+      const result = await lockmysol.lockSolForTime(savedId, amountBase, durationSeconds)
+      if (result) {
+        notify({ type: 'success', message: 'Transaction successful!' });
+      } else {
+        notify({ type: 'error', message: 'Transaction error!' });
+      }
     } catch (e) {
       // new user
-      await lockmysol.createUserAccount();
-      await lockmysol.lockSolForTime(1, amountBase, durationSeconds)
+      const result = await lockmysol.createUserAccount();
+      if (result) {
+        notify({ type: 'success', message: 'Transaction successful!' });
+      } else {
+        notify({ type: 'error', message: 'Transaction error!' });
+      }  
+      const result2 = await lockmysol.lockSolForTime(1, amountBase, durationSeconds);
+      if (result2) {
+        notify({ type: 'success', message: 'Transaction successful!' });
+      } else {
+        notify({ type: 'error', message: 'Transaction error!' });
+      }
     }
   };
 
