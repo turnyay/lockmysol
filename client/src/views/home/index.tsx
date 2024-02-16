@@ -2,15 +2,32 @@
 import { FC, useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import * as React from 'react';
+import { styled } from '@mui/material/styles';
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
+import MuiInput from '@mui/material/Input';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Slider from '@mui/material/Slider';
+
+import Button from '@mui/material/Button';
+
+const Input = styled(MuiInput)`
+  width: 42px;
+`;
+
 // Wallet
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 
 // Components
 import { RequestAirdrop } from '../../components/RequestAirdrop';
-import pkg from '../../../package.json';
 
 // Store
 import useUserSOLBalanceStore from '../../stores/useUserSOLBalanceStore';
+import { ColorSwatchIcon } from '@heroicons/react/outline';
+
+const maxDays = 365;
 
 export const HomeView: FC = ({ }) => {
   const wallet = useWallet();
@@ -26,12 +43,46 @@ export const HomeView: FC = ({ }) => {
     }
   }, [wallet.publicKey, connection, getUserSOLBalance])
 
+  // Params
+  const [amount, setAmount] = React.useState('');
+  const [durationPercent, setDurationPercent] = React.useState(50);
+  const [duration, setDuration] = React.useState(Math.floor(maxDays / 2));
+
+  const handleSliderChange = (event: Event, newDuration: number) => {
+    let daysAmount = Math.floor(newDuration * maxDays / 100);
+    setDurationPercent(newDuration as number);
+    setDuration(daysAmount);
+  };
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDuration(event.target.value === '' ? 0 : Number(event.target.value));
+  };
+
+  const handleBlur = () => {
+    if (duration < 0) {
+      setDuration(0);
+    } else if (duration > 365) {
+      setDuration(365);
+    }
+  };
+
+  const handleAmountChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setAmount(event.target.value === '' ? 0 : Number(event.target.value));
+  };
+
+  const handleAmountBlur = () => {
+    if (amount.includes(".")) {
+      setAmount(amount);
+    } else {
+      setAmount(Number(amount));
+    }
+  };
+
   return (
 
     <div className="md:hero mx-auto p-4">
       <div className="md:hero-content flex flex-col">
         <div className='mt-6'>
-        <div className='text-sm font-normal align-bottom text-right text-slate-600 mt-4'>v{pkg.version}</div>
         <h1 className="text-center text-5xl md:pl-12 font-bold text-transparent bg-clip-text bg-gradient-to-br from-indigo-500 to-fuchsia-500 mb-4">
           Lock Solana
         </h1>
@@ -40,6 +91,58 @@ export const HomeView: FC = ({ }) => {
           <p>Lock your Solana tokens in escrow for a specified amount of time.</p>
           <p className='text-slate-500 text-2x1 leading-relaxed'>Don't sell your SOL, lock it!</p>
         </h4>
+        <div className="flex w-full flex-wrap md:flex-nowrap gap-4">
+        </div>
+        <Box sx={{ width: 600 }}>
+          <Typography id="input-text" gutterBottom>
+            Amount (in SOL):
+          </Typography>
+          <Input
+                value={amount}
+                size="medium"
+                onChange={handleAmountChange}
+                onBlur={handleAmountBlur}
+                inputProps={{
+                  min: 0,
+                  type: 'text',
+                  'aria-labelledby': 'input-slider',
+                  sx: { color: 'white' }
+                }}
+                sx={{ bgcolor: '#31125d66', width: 100  }}
+              />
+          <Typography id="input-slider" gutterBottom>
+            Lock Duration (in DAYS):
+          </Typography>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs>
+              <Slider
+                value={typeof durationPercent === 'number' ? durationPercent : 0}
+                onChange={handleSliderChange}
+                aria-labelledby="input-slider"
+                step={0.01}
+                min={(1 / maxDays * 100)}
+              />
+            </Grid>
+            <Grid item>
+              <Input
+                value={duration}
+                size="small"
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                inputProps={{
+                  step: 10,
+                  min: 0,
+                  max: 100,
+                  type: 'number',
+                  'aria-labelledby': 'input-slider',
+                  sx: { color: 'white' }
+                }}
+                sx={{ bgcolor: '#31125d66' }}
+              />
+            </Grid>
+          </Grid>
+        </Box>
+        <Button variant="contained">LOCK {amount} SOLANA</Button>
       </div>
     </div>
   );
