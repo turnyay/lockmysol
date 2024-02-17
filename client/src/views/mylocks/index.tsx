@@ -172,7 +172,11 @@ export const MylocksView: FC = ({ }) => {
                   <TableCell sx={{ color: 'white' }}>{lockAccount.unlockTime}</TableCell>
                   <TableCell sx={{ color: 'white' }}>{lockAccount.unlockingIn} seconds</TableCell>
                   <TableCell sx={{ color: 'white' }}>
-                    <Button variant="contained" onClick={() => handleUnlockButtonClick(lockAccount.lockNumber)}>UNLOCK</Button>
+                    {lockAccount.state == 1 ? 
+                      <Button variant="contained" onClick={() => handleUnlockButtonClick(lockAccount.lockNumber)}>UNLOCK</Button>
+                      : 
+                      "Unlocked"
+                    }
                   </TableCell>
                 </TableRow>
               ))}

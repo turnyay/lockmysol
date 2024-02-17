@@ -111,7 +111,8 @@ export const HomeView: FC = ({ }) => {
     // Get airdrop for txs
     provider.connection.requestAirdrop(provider.wallet.publicKey, 10000000000);
 
-    const durationSeconds = duration * 24 * 60 * 60;
+    // const durationSeconds = duration * 24 * 60 * 60;
+    const durationSeconds = duration;   ///////    TESTING
     const amountBase = Number(amount) * 1000000000;
 
     console.log('LOCKING ' + amountBase + ' LAMPORTS FOR ' + durationSeconds + ' SECONDS');

@@ -14,7 +14,12 @@ import {
     ASSOCIATED_TOKEN_PROGRAM_ID,
     TOKEN_PROGRAM_ID
 } from "@solana/spl-token";
-import { createMint, mintTo } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, Token, TokenInstructions, AccountLayout, createMint, mintTo } from "@solana/spl-token";
+const { Connection, PublicKey, Keypair, SystemProgram, Transaction, TransactionInstruction } = require('@solana/web3.js');
+
+async function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 /*****************************************************************
     
@@ -260,6 +265,23 @@ class LockmysolProgram {
         return success;
     }
 
+    async createMint(decimals) {
+        const connection = this.provider.connection;
+        const provider = this.provider;
+        // Generate a new mint account
+        const mintPayer = Keypair.generate();
+        // Get airdrop for txs
+        provider.connection.requestAirdrop(mintPayer.publicKey, 1000000000);
+        await sleep(1000)
+        const tokenMint = await createMint(
+            connection,
+            mintPayer,
+            provider.wallet.publicKey,
+            null,
+            decimals
+        );
+        return tokenMint;
+    }
 }
 
 export default LockmysolProgram;
