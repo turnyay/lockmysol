@@ -6,10 +6,10 @@ const Mylocks: NextPage = (props) => {
   return (
     <div>
       <Head>
-        <title>Solana Scaffold</title>
+        <title>My Locks</title>
         <meta
           name="description"
-          content="Basic Functionality"
+          content="My Locks"
         />
       </Head>
       <MylocksView />

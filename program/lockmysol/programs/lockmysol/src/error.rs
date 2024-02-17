@@ -11,4 +11,7 @@ pub enum LockMySolError {
     /// 6002
     #[msg("InvalidLockId")]
     InvalidLockId,
+    /// 6003
+    #[msg("InvalidAmount")]
+    InvalidAmount
 }

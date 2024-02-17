@@ -56,6 +56,10 @@ pub fn lock_sol_for_time(ctx: Context<LockSolForTime>, lock_sol_id_count: u64, a
     // 2 - PDA to store SOL (user pk + "solana-escrow")
     // 3 - PDA LockAccount: state, owner, lockUntilTime, etc
 
+    if amount_sol == 0 {
+        return Err(LockMySolError::InvalidAmount.into());
+    }
+
     // Pass in: amount_sol, duration in seconds
     let user_account = &mut ctx.accounts.user_account;
     if lock_sol_id_count != user_account.lock_sol_id_count {

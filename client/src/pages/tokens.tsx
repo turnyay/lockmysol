@@ -1,20 +1,20 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { HomeView } from "../views";
+import { TokensView } from "../views";
 
-const Home: NextPage = (props) => {
+const Tokens: NextPage = (props) => {
   return (
     <div>
       <Head>
-        <title>Lock Solana</title>
+        <title>Lock Tokens</title>
         <meta
           name="description"
-          content="Lock Solana"
+          content="Lock Tokens"
         />
       </Head>
-      <HomeView />
+      <TokensView />
     </div>
   );
 };
 
-export default Home;
+export default Tokens;
