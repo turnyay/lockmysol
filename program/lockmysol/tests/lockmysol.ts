@@ -171,40 +171,32 @@ describe("lockmysol", () => {
     let testMint;
     try {
       // create token mint
-      testMint = await lockmysol.createMint(9, 1000000000);
+      testMint = await lockmysol.createMint(9);
       console.log("Mint pubkey: " + testMint);
     } catch (e) {
       console.log(e)
     }
 
-    // const initializeMintInstr = await createInitializeMintInstruction(
-    //   testMint, 8, 
-    // )
-    
-    // console.log("MINT:");
-    // console.log(testMint);
+    // create user token account
+    await lockmysol.createATokenAccount(testMint);
 
-    // const pk = new PublicKey(testMint.toBase58());
-    // console.log(pk);
+    console.log("minting tokens... ");
 
-    // // create user token account
-    // await lockmysol.createATokenAccount(testMint);
+    // mint user tokens
+    const userTokenAccount = lockmysol.getUserTokenAccount(testMint); 
+    const mintTx = await lockmysol.mintTokens(testMint, userTokenAccount, 10000000000);
 
-    // console.log("minting tokens... ");
+    console.log("minted tx: ", mintTx);
 
-    // // mint user tokens
-    // const userTokenAccount = lockmysol.getUserTokenAccount(pk); 
-    // await lockmysol.mintTokens(pk, userTokenAccount, 10000000000);
+    console.log("locking tokens... ");
 
-    // console.log("locking tokens... ");
+    // lock tokens
+    const success = await lockmysol.lockTokenForTime(1, testMint, 1, WAIT_TIME);
 
-    // // lock tokens
-    // const success = await lockmysol.lockTokenForTime(1, pk, 123456789, WAIT_TIME);
-
-    // assert(success, "Tx should SUCCEED");
-    // if (success) {
-    //   console.log('locked tokens ok');
-    // }
+    assert(success, "Tx should SUCCEED");
+    if (success) {
+      console.log('locked tokens ok');
+    }
 
   });
 

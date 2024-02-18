@@ -1,4 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
+import {Signer} from "@coral-xyz/anchor";
 
 import {
     longToByteArray,
@@ -153,11 +154,6 @@ class LockmysolProgram {
         return success;
     }
 
-    async createTokenMint() {
-
-
-    }
-
     getUserTokenAccount(mint) {
         let userTokenAccount;
         [userTokenAccount] = PublicKey.findProgramAddressSync(
@@ -177,12 +173,18 @@ class LockmysolProgram {
     }
 
     async mintTokens(mint, tokenAccount, amount) {
+
+        // // airdrop payer fee
+        // const mintPayer = Keypair.generate();
+        // this.provider.connection.requestAirdrop(mintPayer.publicKey, 1000000000);
+        // await sleep(1000)
+
         const txid = await mintTo(
             this.provider.connection,
-            this.provider.wallet,
+            this.provider.wallet.payer,
             mint,
             tokenAccount,
-            this.provider.wallet, // auth
+            this.provider.wallet.publicKey, // auth
             amount
         );
         return txid;
@@ -266,22 +268,22 @@ class LockmysolProgram {
     }
 
     async createMint(decimals) {
-        const connection = this.provider.connection;
-        const provider = this.provider;
-        // Generate a new mint account
+        
+        // airdrop payer fee
         const mintPayer = Keypair.generate();
-        // Get airdrop for txs
-        provider.connection.requestAirdrop(mintPayer.publicKey, 1000000000);
+        this.provider.connection.requestAirdrop(mintPayer.publicKey, 1000000000);
         await sleep(1000)
+        
         const tokenMint = await createMint(
-            connection,
+            this.provider.connection,
             mintPayer,
-            provider.wallet.publicKey,
+            this.provider.wallet.publicKey,
             null,
             decimals
         );
         return tokenMint;
     }
+
 }
 
 export default LockmysolProgram;
